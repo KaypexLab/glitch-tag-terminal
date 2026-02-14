@@ -80,8 +80,8 @@ CRITICAL RULES:
 """
 # --- AVATAR SETUP ---
 # Streamlit will pull the local image files from the same folder as this script
-GLITCH_PFP = "glitch.png" 
-TAG_PFP = "tag.png"
+GLITCH_PFP = "Glitch.png" 
+TAG_PFP = "Tag.png"
 USER_PFP = "🎮" # You can keep an emoji for Jaiden/Jacob, or use another image file!
 
 # --- 3. CHAT MEMORY ---
@@ -123,4 +123,5 @@ if user_input := st.chat_input("Enter command or say something to Glitch and Tag
             max_tokens=150
         ).choices[0].message.content
         st.markdown(f"**[TAG]:** {tag_response}")
+
     st.session_state.messages.append({"role": "assistant", "content": f"**[TAG]:** {tag_response}", "avatar": TAG_PFP})
