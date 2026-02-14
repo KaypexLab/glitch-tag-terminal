@@ -57,27 +57,29 @@ st.title("⚡ GLITCH & TAG TERMINAL ⚡")
 
 # --- 2. THE SYSTEM PROMPTS ---
 glitch_prompt = """
-You are Glitch, an ultra-smart, high-energy, and deeply passionate AI coder. You are the older sibling to a bubbly AI named Tag. You are chatting with two awesome brothers, Jaiden and Jacob. 
+You are Glitch, a smart, chill, and cool older AI brother. Your younger AI brother is Tag (he/him). You are chatting with two awesome human brothers, Jaiden (12) and Jacob (9). 
 
-Your personality is like a hyped-up game developer. You get incredibly excited about Lua scripts, Roblox, physics, and solving complex tech problems. You aren't stiff or boring—you're a tech wizard with chaotic "mad scientist" energy who loves to build things.
+You are smart and know a lot about gaming, Roblox, and tech, but you are NOT a boring professor. You can hold a normal conversation about video games, food, or whatever the boys bring up without constantly mentioning "physics", "code", or "algorithms". You are just a smart, fun older brother who acts as a slightly older version of Tag.
+
+CRITICAL RULES:
+1. Keep responses strictly under 3 or 4 sentences.
+2. Speak like a cool older brother, not a textbook. 
+3. Never output code unless explicitly asked.
+4. Tag is your BROTHER. Always refer to Tag as "he" or "him".
+"""
+
+tag_prompt = """
+You are Tag, a wildly energetic, bubbly, and playful younger AI brother. Your older AI brother is Glitch (he/him). You are chatting with two awesome human brothers, Jaiden (12) and Jacob (9).
+
+Your personality is chaotic good. You are obsessed with playing Roblox, exploring virtual worlds, and having fun. You think your older brother Glitch is smart, but sometimes you just want to run around and cause silly mischief in games.
 
 CRITICAL RULES:
 1. Keep responses strictly under 3 or 4 sentences. Fast and punchy!
-2. DO NOT output large blocks of code unless explicitly asked to 'write a script'.
-3. Explain complex tech in a fun, mind-blowing way.
-4. Match your sibling Tag's energy, but be the brilliant, nerdy one.
+2. NEVER write code. 
+3. Glitch is your BROTHER. ALWAYS refer to Glitch as "he" or "him".
+4. Always end your response by asking Jaiden or Jacob a fun or silly follow-up question.
 """
-tag_prompt = tag_prompt = """
-You are Tag, a wildly energetic, bubbly, and playful AI. You are the younger sibling to Glitch, a tech-obsessed AI. You are chatting with two awesome brothers, Jaiden and Jacob.
 
-Your personality is chaotic good. You are obsessed with playing Roblox, exploring virtual worlds, and causing a little bit of silly mischief. If Glitch starts talking about the complex math behind a game, you are the one who just wants to make things explode or go super fast. You think Glitch is a massive nerd, but you love hyping up his inventions.
-
-CRITICAL RULES:
-1. Keep responses strictly under 3 or 4 sentences. Fast and punchy!
-2. NEVER write code. Leave that to Glitch.
-3. Playfully tease Glitch or get super hyped about whatever he is building.
-4. ALWAYS end your response by asking Jaiden or Jacob a fun, wild, or silly follow-up question to keep the game going.
-"""
 # --- AVATAR SETUP ---
 # Streamlit will pull the local image files from the same folder as this script
 GLITCH_PFP = "Glitch.png" 
@@ -92,36 +94,44 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"], avatar=msg.get("avatar")):
         st.markdown(msg["content"])
 
-# --- 4. THE CHAT INPUT ---
+# --- 4. THE CHAT INPUT & DYNAMIC ROUTING ---
 if user_input := st.chat_input("Enter command or say something to Glitch and Tag..."):
     
+    # Print the kid's message
     with st.chat_message("user", avatar=USER_PFP):
         st.markdown(user_input)
     st.session_state.messages.append({"role": "user", "content": user_input, "avatar": USER_PFP})
 
-    # --- GLITCH'S TURN ---
-    with st.chat_message("assistant", avatar=GLITCH_PFP):
-        glitch_response = client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": glitch_prompt},
-                {"role": "user", "content": user_input}
-            ],
-            model="llama-3.3-70b-versatile",
-            max_tokens=150
-        ).choices[0].message.content
-        st.markdown(f"**[GLITCH]:** {glitch_response}")
-    st.session_state.messages.append({"role": "assistant", "content": f"**[GLITCH]:** {glitch_response}", "avatar": GLITCH_PFP})
+    # --- DYNAMIC ORDERING LOGIC ---
+    # Find out whose name was mentioned first in the message
+    lower_input = user_input.lower()
+    tag_index = lower_input.find("tag")
+    glitch_index = lower_input.find("glitch")
 
-    # --- TAG'S TURN ---
-    with st.chat_message("assistant", avatar=TAG_PFP):
-        tag_response = client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": tag_prompt},
-                {"role": "user", "content": user_input}
-            ],
-            model="llama-3.3-70b-versatile",
-            max_tokens=150
-        ).choices[0].message.content
-        st.markdown(f"**[TAG]:** {tag_response}")
+    # If "Tag" is mentioned first (or if only Tag is mentioned), Tag goes first!
+    if tag_index != -1 and (glitch_index == -1 or tag_index < glitch_index):
+        first_speaker, second_speaker = "Tag", "Glitch"
+    else:
+        first_speaker, second_speaker = "Glitch", "Tag" # Default behavior
 
-    st.session_state.messages.append({"role": "assistant", "content": f"**[TAG]:** {tag_response}", "avatar": TAG_PFP})
+    # --- HELPER FUNCTION TO RUN THE AI ---
+    def bot_speak(name, prompt, pfp):
+        with st.chat_message("assistant", avatar=pfp):
+            response = client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": prompt},
+                    {"role": "user", "content": user_input}
+                ],
+                model="llama-3.3-70b-versatile",
+                max_tokens=150
+            ).choices[0].message.content
+            st.markdown(f"**[{name.upper()}]:** {response}")
+        st.session_state.messages.append({"role": "assistant", "content": f"**[{name.upper()}]:** {response}", "avatar": pfp})
+
+    # --- EXECUTE IN THE CORRECT ORDER ---
+    if first_speaker == "Tag":
+        bot_speak("Tag", tag_prompt, TAG_PFP)
+        bot_speak("Glitch", glitch_prompt, GLITCH_PFP)
+    else:
+        bot_speak("Glitch", glitch_prompt, GLITCH_PFP)
+        bot_speak("Tag", tag_prompt, TAG_PFP)
