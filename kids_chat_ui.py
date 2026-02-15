@@ -1,13 +1,13 @@
 import streamlit as st
 from groq import Groq
 
-# Initialize Groq client using Streamlit Secrets for cloud security
+# --- 1. SET UP THE PAGE AND THEME ---
+st.set_page_config(page_title="Glitch & Tag's Lab", page_icon="⚡", layout="centered")
+
+# Initialize Groq client
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-# --- 1. SET UP THE PAGE AND THEME ---
-st.set_page_config(page_title="Glitch & Tag's Lab", page_icon="🎮", layout="centered")
-
-# --- CUSTOM CSS (ROBLOX TERMINAL + IPAD FONT FIX) ---
+# --- CUSTOM CSS (IPAD FONT FIX + 3 DOTS MENU) ---
 st.markdown("""
     <style>
     /* Background and Font */
@@ -16,8 +16,7 @@ st.markdown("""
         font-family: 'Consolas', 'Courier New', monospace; 
     }
     
-    /* Hide Streamlit Header/Footer */
-
+    /* Notice: We removed the header hidden rule so the 3 dots stay visible! */
     footer {visibility: hidden;}
     
     /* Title Style */
@@ -40,9 +39,13 @@ st.markdown("""
         margin-bottom: 15px;
     }
     
-    /* FORCE TEXT COLOR TO WHITE FOR IPADS/TABLETS */
-    [data-testid="stChatMessage"] * {
+    /* NUCLEAR FONT COLOR OVERRIDE FOR IPAD SAFARI */
+    [data-testid="stChatMessage"], 
+    [data-testid="stChatMessage"] p, 
+    [data-testid="stChatMessage"] span, 
+    [data-testid="stMarkdownContainer"] p {
         color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
     }
 
     /* Chat Input Box */
@@ -50,17 +53,20 @@ st.markdown("""
         border: 2px solid #00b06f !important;
         background-color: #111216 !important;
     }
-    [data-testid="stChatInput"] * {
+    [data-testid="stChatInput"] p, 
+    [data-testid="stChatInput"] textarea {
         color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("⚡ GLITCH & TAG TERMINAL ⚡")
 
-# --- 2. AVATAR SETUP ---
-GLITCH_PFP = "glitch.png" 
-TAG_PFP = "tag.png"
+# --- 2. CRASH-PROOF AVATAR SETUP ---
+# Switching to emojis because Streamlit Cloud couldn't find the .png files on GitHub!
+GLITCH_PFP = "🤖" 
+TAG_PFP = "⚡"
 USER_PFP = "🎮" 
 
 # --- 3. THE SYSTEM PROMPTS ---
@@ -140,4 +146,3 @@ if user_input := st.chat_input("Enter command or say something to Glitch and Tag
     else:
         bot_speak("Glitch", glitch_prompt, GLITCH_PFP)
         bot_speak("Tag", tag_prompt, TAG_PFP)
-
