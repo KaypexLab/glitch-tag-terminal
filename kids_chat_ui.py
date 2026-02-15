@@ -17,7 +17,7 @@ st.markdown("""
     }
     
     /* Hide Streamlit Header/Footer */
-    header {visibility: hidden;}
+
     footer {visibility: hidden;}
     
     /* Title Style */
@@ -140,3 +140,4 @@ if user_input := st.chat_input("Enter command or say something to Glitch and Tag
     else:
         bot_speak("Glitch", glitch_prompt, GLITCH_PFP)
         bot_speak("Tag", tag_prompt, TAG_PFP)
+
