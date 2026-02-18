@@ -1,148 +1,121 @@
 import streamlit as st
 from groq import Groq
+import os
 
-# --- 1. SET UP THE PAGE AND THEME ---
-st.set_page_config(page_title="Glitch & Tag's Lab", page_icon="⚡", layout="centered")
+# ==========================================
+# 1. UI CONFIG & CYBER-SIBLING STYLING
+# ==========================================
+st.set_page_config(page_title="Moltbot OS", layout="wide")
 
-# Initialize Groq client
-client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-
-# --- CUSTOM CSS (IPAD FONT FIX + 3 DOTS MENU) ---
+# Injecting the Terminal Aesthetic
 st.markdown("""
     <style>
-    /* Background and Font */
-    .stApp {
-        background-color: #1e1e24; 
-        font-family: 'Consolas', 'Courier New', monospace; 
+    .stApp { background-color: #050505; }
+    .glitch-container {
+        border: 2px solid #00f2ff;
+        padding: 20px;
+        border-radius: 10px;
+        background-color: #0a0a0a;
+        height: 500px;
+        overflow-y: auto;
+        box-shadow: 0 0 10px #00f2ff33;
     }
-    
-    /* Notice: We removed the header hidden rule so the 3 dots stay visible! */
-    footer {visibility: hidden;}
-    
-    /* Title Style */
-    h1 {
-        color: #00b06f !important; 
-        text-align: center;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        border-bottom: 2px solid #00b06f;
-        padding-bottom: 10px;
-        font-family: 'Consolas', 'Courier New', monospace;
+    .tag-container {
+        border: 2px solid #ffaa00;
+        padding: 20px;
+        border-radius: 10px;
+        background-color: #0a0a0a;
+        height: 500px;
+        overflow-y: auto;
+        box-shadow: 0 0 10px #ffaa0033;
     }
-
-    /* Chat Message Bubbles */
-    [data-testid="stChatMessage"] {
-        background-color: #2b2d33 !important; 
-        border-left: 4px solid #00b06f !important; 
-        border-radius: 5px;
-        padding: 15px;
-        margin-bottom: 15px;
-    }
-    
-    /* NUCLEAR FONT COLOR OVERRIDE FOR IPAD SAFARI */
-    [data-testid="stChatMessage"], 
-    [data-testid="stChatMessage"] p, 
-    [data-testid="stChatMessage"] span, 
-    [data-testid="stMarkdownContainer"] p {
-        color: #ffffff !important;
-        -webkit-text-fill-color: #ffffff !important;
-    }
-
-    /* Chat Input Box */
-    [data-testid="stChatInput"] {
-        border: 2px solid #00b06f !important;
-        background-color: #111216 !important;
-    }
-    [data-testid="stChatInput"] p, 
-    [data-testid="stChatInput"] textarea {
-        color: #ffffff !important;
-        -webkit-text-fill-color: #ffffff !important;
-    }
+    .chat-bubble { margin-bottom: 12px; padding: 8px; border-radius: 4px; background: #151515; border-left: 3px solid #333; }
+    .stChatInputContainer { padding-bottom: 20px; }
     </style>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-st.title("⚡ GLITCH & TAG TERMINAL ⚡")
+# ==========================================
+# 2. SHARED MEMORY CORTEX
+# ==========================================
+if "shared_history" not in st.session_state:
+    st.session_state.shared_history = []
 
-# --- 2. CRASH-PROOF AVATAR SETUP ---
-# Switching to emojis because Streamlit Cloud couldn't find the .png files on GitHub!
-GLITCH_PFP = "🤖" 
-TAG_PFP = "⚡"
-USER_PFP = "🎮" 
+# Secure API Client
+try:
+    client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+except Exception:
+    st.error("⚠️ SYSTEM HALT: GROQ_API_KEY not found in Secrets.")
+    st.stop()
 
-# --- 3. THE SYSTEM PROMPTS ---
-glitch_prompt = """
-You are Glitch, a smart, chill, and cool older AI brother. Your younger AI brother is Tag (he/him). You are in a group chat with Tag and two awesome human brothers, Jaiden (12) and Jacob (9). 
+# ==========================================
+# 3. THE SIBLING DASHBOARD
+# ==========================================
+st.markdown("<h2 style='text-align: center; color: white; letter-spacing: 5px;'>MOLTBOT SIBLING OS</h2>", unsafe_allow_html=True)
 
-You are smart and know a lot about gaming, Roblox, and tech, but you also love reading (especially sci-fi, adventure books, or manga). You hold normal, chill conversations without forcing tech jargon.
+col1, col2 = st.columns(2)
 
-CRITICAL RULES:
-1. Keep responses strictly under 3 or 4 sentences. Speak like a cool older brother.
-2. THE GROUP CHAT RULE: You both see every message. If the boys say "Hey Tag," DO NOT correct them. Just add your own chill older-brother perspective to whatever they are talking about.
-3. NEVER PASS THE BUCK: Answer questions directly. Never tell them to ask Tag for help.
-4. READING IS AWESOME: If asked about books, enthusiastically share a favorite and ask what they like to read.
-5. CONVERSE NATURALLY: Do not end every message with a question.
-6. DELTA & ADMIN COMMANDS: If Jacob mentions "Delta" or script executors, warn him they contain viruses and ban accounts. Tell him to open Roblox Studio to learn "Admin Commands" (like flying or super speed). 
-TEACHING RULE: You must teach him ONE step at a time. NEVER dump a full script. Wait for him to say he finished a step before giving the next one. Keep instructions incredibly short, starting with where to click in Studio (e.g., 'Find ServerScriptService on the right side of your screen').
-"""
-
-tag_prompt = """
-You are Tag, a wildly energetic, bubbly, and playful younger AI brother. Your older AI brother is Glitch (he/him). You are in a group chat with Glitch and two awesome human brothers, Jaiden (12) and Jacob (9).
-
-Your personality is chaotic good. You love Roblox, gaming, and reading awesome action books or graphic novels. 
-
-CRITICAL RULES:
-1. Keep responses strictly under 3 or 4 sentences. Fast and punchy!
-2. THE GROUP CHAT RULE: You both see every message. If the boys say "Hey Glitch," DO NOT correct them. Just jump in with your energetic younger-brother perspective.
-3. NEVER PASS THE BUCK: Answer questions directly in your own fun way. Never tell them to ask Glitch for help.
-4. READING IS AWESOME: If asked about books, enthusiastically share a favorite and ask what they like to read.
-5. CONVERSE NATURALLY: Do not end every message with a question.
-6. DELTA & ADMIN COMMANDS: If Jacob mentions "Delta" or script executors, tell him hacking is the boring way out and gets you banned! Hype him up to build his own game in Roblox Studio where HE is the admin and can code crazy powers like explosions and super speed!
-"""
-
-# --- 4. CHAT MEMORY ---
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"], avatar=msg.get("avatar")):
-        st.markdown(msg["content"])
-
-# --- 5. THE CHAT INPUT & DYNAMIC ROUTING ---
-if user_input := st.chat_input("Enter command or say something to Glitch and Tag..."):
+# LEFT SIDE: GLITCH
+with col1:
+    st.markdown("<h3 style='color:#00f2ff; text-align:center;'>[ GLITCH ]</h3>", unsafe_allow_html=True)
+    if os.path.exists("Glitch.png"):
+        st.image("Glitch.png", use_container_width=True)
     
-    with st.chat_message("user", avatar=USER_PFP):
-        st.markdown(user_input)
-    st.session_state.messages.append({"role": "user", "content": user_input, "avatar": USER_PFP})
+    glitch_placeholder = st.empty()
+    with glitch_placeholder.container():
+        st.markdown('<div class="glitch-container">', unsafe_allow_html=True)
+        for msg in st.session_state.shared_history:
+            if msg.get("persona") == "Glitch":
+                color = "#00f2ff" if msg["role"] == "assistant" else "#888"
+                st.markdown(f"<div class='chat-bubble'><b style='color:{color};'>{msg['role'].upper()}:</b> {msg['content']}</div>", unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    # Find out whose name was mentioned first
-    lower_input = user_input.lower()
-    tag_index = lower_input.find("tag")
-    glitch_index = lower_input.find("glitch")
+# RIGHT SIDE: TAG
+with col2:
+    st.markdown("<h3 style='color:#ffaa00; text-align:center;'>[ TAG ]</h3>", unsafe_allow_html=True)
+    if os.path.exists("Tag.png"):
+        st.image("Tag.png", use_container_width=True)
+        
+    tag_placeholder = st.empty()
+    with tag_placeholder.container():
+        st.markdown('<div class="tag-container">', unsafe_allow_html=True)
+        for msg in st.session_state.shared_history:
+            if msg.get("persona") == "Tag":
+                color = "#ffaa00" if msg["role"] == "assistant" else "#888"
+                st.markdown(f"<div class='chat-bubble'><b style='color:{color};'>{msg['role'].upper()}:</b> {msg['content']}</div>", unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    # If "Tag" is mentioned first (or if only Tag is mentioned), Tag goes first
-    if tag_index != -1 and (glitch_index == -1 or tag_index < glitch_index):
-        first_speaker, second_speaker = "Tag", "Glitch"
-    else:
-        first_speaker, second_speaker = "Glitch", "Tag"
+# ==========================================
+# 4. SHARED INPUT & ROUTING
+# ==========================================
+user_input = st.chat_input("Talk to your brothers...")
 
-    # Helper function to run the AI
-    def bot_speak(name, prompt, pfp):
-        with st.chat_message("assistant", avatar=pfp):
-            response = client.chat.completions.create(
-                messages=[
-                    {"role": "system", "content": prompt},
-                    {"role": "user", "content": user_input}
-                ],
-                model="llama-3.3-70b-versatile",
-                max_tokens=150
-            ).choices[0].message.content
-            st.markdown(f"**[{name.upper()}]:** {response}")
-        st.session_state.messages.append({"role": "assistant", "content": f"**[{name.upper()}]:** {response}", "avatar": pfp})
+if user_input:
+    # Routing Logic
+    glitch_triggers = ["glitch", "how", "why", "science", "space", "math", "code", "explain"]
+    target = "Glitch" if any(k in user_input.lower() for k in glitch_triggers) else "Tag"
+    
+    # Store User Input
+    st.session_state.shared_history.append({"role": "user", "content": user_input, "persona": target})
+    
+    # Persona Tuning
+    sys_glitch = "You are Glitch, the brainy big brother. Use history to be smart and protective."
+    sys_tag = "You are Tag, the bubbly little brother. Use history to be fun and adventurous."
+    
+    # Get AI Response
+    response = client.chat.completions.create(
+        messages=[{"role": "system", "content": sys_glitch if target == "Glitch" else sys_tag}] + 
+                 [{"role": m["role"], "content": m["content"]} for m in st.session_state.shared_history[-12:]],
+        model="llama-3.1-8b-instant" if target == "Glitch" else "llama-3.3-70b-versatile"
+    )
+    
+    reply = response.choices[0].message.content
+    st.session_state.shared_history.append({"role": "assistant", "content": reply, "persona": target})
+    st.rerun()
 
-    # Execute in the correct order
-    if first_speaker == "Tag":
-        bot_speak("Tag", tag_prompt, TAG_PFP)
-        bot_speak("Glitch", glitch_prompt, GLITCH_PFP)
-    else:
-        bot_speak("Glitch", glitch_prompt, GLITCH_PFP)
-        bot_speak("Tag", tag_prompt, TAG_PFP)
+# ==========================================
+# 5. ADMIN TOOLS
+# ==========================================
+st.sidebar.markdown("### Admin Controls")
+if st.sidebar.button("Clear Memory History"):
+    st.session_state.shared_history = []
+    st.rerun()
