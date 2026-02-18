@@ -1,6 +1,7 @@
 import streamlit as st
 from groq import Groq
 import os
+import base64
 import random
 
 # ==========================================
@@ -8,28 +9,39 @@ import random
 # ==========================================
 st.set_page_config(page_title="Glitch & Tag", layout="wide")
 
+# Function to convert local image to Base64 (Kills the white box/path error)
+def get_base64_image(image_path):
+    if os.path.exists(image_path):
+        with open(image_path, "rb") as img_file:
+            return base64.b64encode(img_file.read()).decode()
+    return None
+
+# Injecting the Terminal Theme
 st.markdown("""
     <style>
     .stApp { background-color: #050505; }
     
-    /* Forces the Avatar to be big and removes the white background box */
+    .avatar-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 10px;
+    }
+
     .avatar-img {
-        width: 250px;  /* Adjust this to make them even bigger */
-        height: 250px;
+        width: 300px; /* Big avatars for the boys */
+        height: auto;
         object-fit: contain;
-        display: block;
-        margin-left: auto;
-        margin-right: auto;
-        filter: drop-shadow(0 0 10px rgba(255,255,255,0.2));
+        filter: drop-shadow(0 0 15px rgba(255,255,255,0.1));
     }
 
     .terminal-window {
         border-radius: 10px;
         padding: 20px;
         background-color: #0a0a0a;
-        height: 450px;
+        height: 480px;
         overflow-y: auto;
-        margin-top: 10px;
+        margin-top: 5px;
         font-family: 'Courier New', monospace;
     }
     
@@ -38,10 +50,11 @@ st.markdown("""
     
     .chat-bubble { 
         margin-bottom: 12px; 
-        padding: 10px; 
-        border-radius: 5px; 
-        background: #151515; 
-        border-left: 3px solid #444; 
+        padding: 12px; 
+        border-radius: 8px; 
+        background: #121212; 
+        border-left: 4px solid #333;
+        color: #e0e0e0;
     }
     
     h1, h3 { text-align: center; font-family: 'Courier New', monospace; color: white; }
@@ -55,23 +68,30 @@ if "shared_history" not in st.session_state:
     st.session_state.shared_history = []
 
 try:
+    # Safe key retrieval from Streamlit Secrets
     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 except:
-    st.error("Missing GROQ_API_KEY in Secrets!")
+    st.error("Missing GROQ_API_KEY in Streamlit Secrets!")
     st.stop()
 
 # ==========================================
 # 3. GLITCH & TAG INTERFACE
 # ==========================================
-st.markdown("<h1 style='letter-spacing: 10px;'>GLITCH & TAG</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='letter-spacing: 10px; margin-bottom: 0px;'>GLITCH & TAG</h1>", unsafe_allow_html=True)
 
 col1, col2 = st.columns(2)
 
-# GLITCH (Left Brother)
+# Prepare Base64 Images
+glitch_b64 = get_base64_image("Glitch.png")
+tag_b64 = get_base64_image("Tag.png")
+
+# GLITCH (Big Brother)
 with col1:
-    st.markdown("<h3 style='color:#00f2ff;'>[ GLITCH ]</h3>", unsafe_allow_html=True)
-    # Using raw HTML for the image to kill the white box
-    st.markdown('<img src="https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_REPO/main/Glitch.png" class="avatar-img">', unsafe_allow_html=True)
+    st.markdown("<h3 style='color:#00f2ff; margin-bottom: 5px;'>[ GLITCH ]</h3>", unsafe_allow_html=True)
+    if glitch_b64:
+        st.markdown(f'<div class="avatar-container"><img src="data:image/png;base64,{glitch_b64}" class="avatar-img"></div>', unsafe_allow_html=True)
+    else:
+        st.warning("Glitch.png not found")
     
     glitch_html = '<div class="terminal-window glitch-border">'
     for msg in st.session_state.shared_history:
@@ -81,10 +101,13 @@ with col1:
     glitch_html += '</div>'
     st.markdown(glitch_html, unsafe_allow_html=True)
 
-# TAG (Right Brother)
+# TAG (Little Brother)
 with col2:
-    st.markdown("<h3 style='color:#ffaa00;'>[ TAG ]</h3>", unsafe_allow_html=True)
-    st.markdown('<img src="https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_REPO/main/Tag.png" class="avatar-img">', unsafe_allow_html=True)
+    st.markdown("<h3 style='color:#ffaa00; margin-bottom: 5px;'>[ TAG ]</h3>", unsafe_allow_html=True)
+    if tag_b64:
+        st.markdown(f'<div class="avatar-container"><img src="data:image/png;base64,{tag_b64}" class="avatar-img"></div>', unsafe_allow_html=True)
+    else:
+        st.warning("Tag.png not found")
         
     tag_html = '<div class="terminal-window tag-border">'
     for msg in st.session_state.shared_history:
@@ -97,18 +120,19 @@ with col2:
 # ==========================================
 # 4. SHARED INPUT & SIBLING CHIME-IN
 # ==========================================
-user_input = st.chat_input("Talk to your brothers...")
+user_input = st.chat_input("Message the brothers...")
 
 if user_input:
-    glitch_triggers = ["glitch", "how", "why", "science", "space", "math", "explain"]
-    target = "Glitch" if any(k in user_input.lower() for k in glitch_triggers) else "Tag"
+    # Routing Logic
+    glitch_keywords = ["glitch", "how", "why", "science", "space", "math", "physics", "code"]
+    target = "Glitch" if any(k in user_input.lower() for k in glitch_keywords) else "Tag"
     other_brother = "Tag" if target == "Glitch" else "Glitch"
     
     st.session_state.shared_history.append({"role": "user", "content": user_input, "persona": target})
     
-    # SYSTEM PROMPTS (Strictly Brothers)
-    sys_glitch = "You are Glitch, the brainy BIG BROTHER. Tag is your LITTLE BROTHER. Be cool and protective."
-    sys_tag = "You are Tag, the creative LITTLE BROTHER. Glitch is your BIG BROTHER. Be bubbly and fun."
+    # System Instructions
+    sys_glitch = "You are Glitch, the brainy BIG BROTHER. Tag is your LITTLE BROTHER. Be protective, logical, and smart."
+    sys_tag = "You are Tag, the creative LITTLE BROTHER. Glitch is your BIG BROTHER. Be fun, adventurous, and bubbly."
     
     # Get Primary Response
     response = client.chat.completions.create(
@@ -120,9 +144,9 @@ if user_input:
     reply = response.choices[0].message.content
     st.session_state.shared_history.append({"role": "assistant", "content": reply, "persona": target})
 
-    # Chime-In Logic (Brotherly Reaction)
-    if random.random() < 0.30: # 30% chance to chime in
-        chime_sys = f"You are {other_brother}. Your brother {target} just said: '{reply}'. React as a brother in 1 short sentence."
+    # 30% Chance for Sibling Commentary
+    if random.random() < 0.30:
+        chime_sys = f"You are {other_brother}. Your brother {target} just said: '{reply}'. Give a 1-sentence reaction as his brother."
         chime_res = client.chat.completions.create(
             messages=[{"role": "system", "content": chime_sys}],
             model="llama-3.1-8b-instant"
@@ -131,6 +155,8 @@ if user_input:
     
     st.rerun()
 
-if st.sidebar.button("System Reset"):
+# Sidebar Reset
+st.sidebar.markdown("### Admin Controls")
+if st.sidebar.button("Clear Memory"):
     st.session_state.shared_history = []
     st.rerun()
