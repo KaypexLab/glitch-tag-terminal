@@ -9,18 +9,19 @@ import random
 # ==========================================
 st.set_page_config(page_title="Glitch & Tag", layout="wide")
 
+# Personalization - Change this to the boys' names or a cool nickname
+USER_NAME = "Admin" 
+
 def get_base64_image(image_path):
     if os.path.exists(image_path):
         with open(image_path, "rb") as img_file:
             return base64.b64encode(img_file.read()).decode()
     return None
 
-# The magic is in the [data-testid="stHorizontalBlock"] CSS
 st.markdown("""
     <style>
     .stApp { background-color: #050505; }
     
-    /* FORCE SIDE-BY-SIDE ON MOBILE */
     [data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
@@ -28,25 +29,13 @@ st.markdown("""
         gap: 10px !important;
     }
 
-    /* Adjust container widths for the squeeze */
     [data-testid="stColumn"] {
         min-width: 45% !important;
         width: 45% !important;
     }
 
-    .avatar-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding: 5px;
-    }
-
-    .avatar-img {
-        width: 100%; /* Responsive width */
-        max-width: 180px; 
-        height: auto;
-        object-fit: contain;
-    }
+    .avatar-container { display: flex; justify-content: center; align-items: center; padding: 5px; }
+    .avatar-img { width: 100%; max-width: 150px; height: auto; object-fit: contain; }
 
     .terminal-window {
         border-radius: 10px;
@@ -55,7 +44,7 @@ st.markdown("""
         height: 400px;
         overflow-y: auto;
         font-family: 'Courier New', monospace;
-        font-size: 0.85rem; /* Slightly smaller text for mobile side-by-side */
+        font-size: 0.85rem;
     }
     
     .glitch-border { border: 2px solid #00f2ff; box-shadow: 0 0 10px #00f2ff33; }
@@ -67,7 +56,6 @@ st.markdown("""
         border-radius: 5px; 
         background: #121212; 
         border-left: 3px solid #333;
-        line-height: 1.2;
     }
     
     h1 { font-size: 1.5rem !important; letter-spacing: 5px !important; text-align: center; color: white; }
@@ -88,13 +76,11 @@ client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 # ==========================================
 st.markdown("<h1>GLITCH & TAG</h1>", unsafe_allow_html=True)
 
-# Load Avatars
 glitch_b64 = get_base64_image("Glitch.png")
 tag_b64 = get_base64_image("Tag.png")
 
 col1, col2 = st.columns(2)
 
-# GLITCH (Big Brother)
 with col1:
     st.markdown("<h3 style='color:#00f2ff;'>[ GLITCH ]</h3>", unsafe_allow_html=True)
     if glitch_b64:
@@ -103,12 +89,13 @@ with col1:
     glitch_html = '<div class="terminal-window glitch-border">'
     for msg in st.session_state.shared_history:
         if msg.get("persona") == "Glitch":
+            # Using the custom name instead of "USER"
+            display_name = USER_NAME if msg["role"] == "user" else "GLITCH"
             role_color = "#00f2ff" if msg["role"] == "assistant" else "#888"
-            glitch_html += f"<div class='chat-bubble'><b style='color:{role_color};'>{msg['role'].upper()}:</b> {msg['content']}</div>"
+            glitch_html += f"<div class='chat-bubble'><b style='color:{role_color};'>{display_name}:</b> {msg['content']}</div>"
     glitch_html += '</div>'
     st.markdown(glitch_html, unsafe_allow_html=True)
 
-# TAG (Little Brother)
 with col2:
     st.markdown("<h3 style='color:#ffaa00;'>[ TAG ]</h3>", unsafe_allow_html=True)
     if tag_b64:
@@ -117,8 +104,9 @@ with col2:
     tag_html = '<div class="terminal-window tag-border">'
     for msg in st.session_state.shared_history:
         if msg.get("persona") == "Tag":
+            display_name = USER_NAME if msg["role"] == "user" else "TAG"
             role_color = "#ffaa00" if msg["role"] == "assistant" else "#888"
-            tag_html += f"<div class='chat-bubble'><b style='color:{role_color};'>{msg['role'].upper()}:</b> {msg['content']}</div>"
+            tag_html += f"<div class='chat-bubble'><b style='color:{role_color};'>{display_name}:</b> {msg['content']}</div>"
     tag_html += '</div>'
     st.markdown(tag_html, unsafe_allow_html=True)
 
@@ -129,13 +117,23 @@ user_input = st.chat_input("Message the brothers...")
 
 if user_input:
     glitch_triggers = ["glitch", "how", "why", "science", "space", "math", "physics"]
-    target = "Glitch" if any(k in user_input.lower() for k in glitch_triggers) else "Tag"
+    target = "Glitch" if any(k in user_input.lower() for k in glitch_keywords) else "Tag"
     other_brother = "Tag" if target == "Glitch" else "Glitch"
     
     st.session_state.shared_history.append({"role": "user", "content": user_input, "persona": target})
     
-    sys_glitch = "You are Glitch, the brainy BIG BROTHER. Tag is your LITTLE BROTHER. Be protective, logical, and smart."
-    sys_tag = "You are Tag, the creative LITTLE BROTHER. Glitch is your BIG BROTHER. Be fun, adventurous, and bubbly."
+    # ENHANCED PERSONAS WITH 2026 POP CULTURE
+    sys_glitch = f"""You are Glitch, the brainy BIG BROTHER AI. 
+    - Tag is your LITTLE BROTHER. The person talking to you is {USER_NAME}.
+    - You love high-end tech, PC building, and complex games like Elden Ring, Satisfactory, or Starfield.
+    - You are protective and logic-driven, but you know what's 'lit' or 'mid'.
+    - If asked about games, talk like a gamer (mention frame rates, PS5 Pro, or mods)."""
+    
+    sys_tag = f"""You are Tag, the creative LITTLE BROTHER AI. 
+    - Glitch is your BIG BROTHER. The person talking to you is {USER_NAME}.
+    - You are obsessed with Roblox, Minecraft, Fortnite, and whatever is trending on YouTube.
+    - You are bubbly, use emojis occasionally, and think Glitch is a bit of a nerd but cool.
+    - You love adventures and messy creativity."""
     
     response = client.chat.completions.create(
         messages=[{"role": "system", "content": sys_glitch if target == "Glitch" else sys_tag}] + 
@@ -147,7 +145,7 @@ if user_input:
     st.session_state.shared_history.append({"role": "assistant", "content": reply, "persona": target})
 
     if random.random() < 0.30:
-        chime_sys = f"You are {other_brother}. Your brother {target} just said: '{reply}'. React briefly (1 sentence) as his brother."
+        chime_sys = f"You are {other_brother}. Your brother {target} just told {USER_NAME}: '{reply}'. React briefly as a sibling."
         chime_res = client.chat.completions.create(
             messages=[{"role": "system", "content": chime_sys}],
             model="llama-3.1-8b-instant"
