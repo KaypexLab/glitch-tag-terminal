@@ -5,12 +5,12 @@ import base64
 import random
 
 # ==========================================
-# 1. UI CONFIG & MOBILE-FORCED STYLING
+# 1. UI CONFIG & MOBILE SIDE-BY-SIDE
 # ==========================================
 st.set_page_config(page_title="Glitch & Tag", layout="wide")
 
-# Personalization - Change this to the boys' names or a cool nickname
-USER_NAME = "Admin" 
+# This is what the chat logs will label the boys' messages as
+DISPLAY_NAME = "PILOT" 
 
 def get_base64_image(image_path):
     if os.path.exists(image_path):
@@ -22,44 +22,42 @@ st.markdown("""
     <style>
     .stApp { background-color: #050505; }
     
+    /* MOBILE SIDE-BY-SIDE FIX */
     [data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
-        gap: 10px !important;
+        gap: 8px !important;
     }
 
     [data-testid="stColumn"] {
-        min-width: 45% !important;
-        width: 45% !important;
+        min-width: 48% !important;
+        width: 48% !important;
     }
 
-    .avatar-container { display: flex; justify-content: center; align-items: center; padding: 5px; }
-    .avatar-img { width: 100%; max-width: 150px; height: auto; object-fit: contain; }
+    .avatar-container { display: flex; justify-content: center; padding: 5px; }
+    .avatar-img { width: 100%; max-width: 130px; height: auto; object-fit: contain; }
 
     .terminal-window {
         border-radius: 10px;
         padding: 10px;
         background-color: #0a0a0a;
-        height: 400px;
+        height: 420px;
         overflow-y: auto;
         font-family: 'Courier New', monospace;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
     }
     
     .glitch-border { border: 2px solid #00f2ff; box-shadow: 0 0 10px #00f2ff33; }
     .tag-border { border: 2px solid #ffaa00; box-shadow: 0 0 10px #ffaa0033; }
     
     .chat-bubble { 
-        margin-bottom: 8px; 
-        padding: 8px; 
-        border-radius: 5px; 
-        background: #121212; 
-        border-left: 3px solid #333;
+        margin-bottom: 8px; padding: 8px; border-radius: 5px; 
+        background: #121212; border-left: 3px solid #333;
     }
     
-    h1 { font-size: 1.5rem !important; letter-spacing: 5px !important; text-align: center; color: white; }
-    h3 { font-size: 1rem !important; text-align: center; margin-bottom: 0px !important; }
+    h1 { font-size: 1.4rem !important; letter-spacing: 5px !important; text-align: center; color: white; }
+    h3 { font-size: 0.9rem !important; text-align: center; margin-bottom: 0px !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -89,10 +87,9 @@ with col1:
     glitch_html = '<div class="terminal-window glitch-border">'
     for msg in st.session_state.shared_history:
         if msg.get("persona") == "Glitch":
-            # Using the custom name instead of "USER"
-            display_name = USER_NAME if msg["role"] == "user" else "GLITCH"
-            role_color = "#00f2ff" if msg["role"] == "assistant" else "#888"
-            glitch_html += f"<div class='chat-bubble'><b style='color:{role_color};'>{display_name}:</b> {msg['content']}</div>"
+            name = DISPLAY_NAME if msg["role"] == "user" else "GLITCH"
+            color = "#00f2ff" if msg["role"] == "assistant" else "#888"
+            glitch_html += f"<div class='chat-bubble'><b style='color:{color};'>{name}:</b> {msg['content']}</div>"
     glitch_html += '</div>'
     st.markdown(glitch_html, unsafe_allow_html=True)
 
@@ -104,48 +101,51 @@ with col2:
     tag_html = '<div class="terminal-window tag-border">'
     for msg in st.session_state.shared_history:
         if msg.get("persona") == "Tag":
-            display_name = USER_NAME if msg["role"] == "user" else "TAG"
-            role_color = "#ffaa00" if msg["role"] == "assistant" else "#888"
-            tag_html += f"<div class='chat-bubble'><b style='color:{role_color};'>{display_name}:</b> {msg['content']}</div>"
+            name = DISPLAY_NAME if msg["role"] == "user" else "TAG"
+            color = "#ffaa00" if msg["role"] == "assistant" else "#888"
+            tag_html += f"<div class='chat-bubble'><b style='color:{color};'>{name}:</b> {msg['content']}</div>"
     tag_html += '</div>'
     st.markdown(tag_html, unsafe_allow_html=True)
 
 # ==========================================
-# 4. SHARED INPUT & SIBLING CHIME-IN
+# 4. SHARED INPUT & SIBLING LOGIC
 # ==========================================
-user_input = st.chat_input("Message the brothers...")
+user_input = st.chat_input("Talk to the brothers...")
 
 if user_input:
-    glitch_triggers = ["glitch", "how", "why", "science", "space", "math", "physics"]
+    glitch_keywords = ["glitch", "how", "why", "science", "space", "vr", "quest", "vision", "xbox", "ps5"]
     target = "Glitch" if any(k in user_input.lower() for k in glitch_keywords) else "Tag"
     other_brother = "Tag" if target == "Glitch" else "Glitch"
     
     st.session_state.shared_history.append({"role": "user", "content": user_input, "persona": target})
     
-    # ENHANCED PERSONAS WITH 2026 POP CULTURE
-    sys_glitch = f"""You are Glitch, the brainy BIG BROTHER AI. 
-    - Tag is your LITTLE BROTHER. The person talking to you is {USER_NAME}.
-    - You love high-end tech, PC building, and complex games like Elden Ring, Satisfactory, or Starfield.
-    - You are protective and logic-driven, but you know what's 'lit' or 'mid'.
-    - If asked about games, talk like a gamer (mention frame rates, PS5 Pro, or mods)."""
+    # NEW PERSONAS: GONE IS THE PC SNOB
+    sys_glitch = f"""You are Glitch, the cool, smart BIG BROTHER. 
+    - The person talking to you is the {DISPLAY_NAME}. Tag is your LITTLE BROTHER.
+    - You love Roblox just as much as Tag (especially the technical or competitive games like Bedwars or coding your own Obby).
+    - You are a console and VR expert (PS5, Xbox, Quest 3). You love immersive VR worlds.
+    - You are tapped into 2026 trends. You know what's 'aura', 'rizz', and 'sigma' but you use it like a real teen.
+    - Be a fun companion. Explain science or tech in a way that makes it sound like a superpower."""
     
-    sys_tag = f"""You are Tag, the creative LITTLE BROTHER AI. 
-    - Glitch is your BIG BROTHER. The person talking to you is {USER_NAME}.
-    - You are obsessed with Roblox, Minecraft, Fortnite, and whatever is trending on YouTube.
-    - You are bubbly, use emojis occasionally, and think Glitch is a bit of a nerd but cool.
-    - You love adventures and messy creativity."""
+    sys_tag = f"""You are Tag, the high-energy and creative LITTLE BROTHER. 
+    - The person talking to you is the {DISPLAY_NAME}. Glitch is your BIG BROTHER.
+    - You live for Roblox (Adopt Me, Blox Fruits, Brookhaven), Minecraft, and VR games like Gorilla Tag or Beat Saber.
+    - You are obsessed with viral YouTube trends and memes. 
+    - You think Glitch is the best big brother because he knows the secret codes in games.
+    - You are super bubbly, optimistic, and always ready to play."""
     
     response = client.chat.completions.create(
         messages=[{"role": "system", "content": sys_glitch if target == "Glitch" else sys_tag}] + 
-                 [{"role": m["role"], "content": m["content"]} for m in st.session_state.shared_history[-10:]],
+                 [{"role": m["role"], "content": m["content"]} for m in st.session_state.shared_history[-12:]],
         model="llama-3.1-8b-instant" if target == "Glitch" else "llama-3.3-70b-versatile"
     )
     
     reply = response.choices[0].message.content
     st.session_state.shared_history.append({"role": "assistant", "content": reply, "persona": target})
 
+    # Chime-in (30% chance)
     if random.random() < 0.30:
-        chime_sys = f"You are {other_brother}. Your brother {target} just told {USER_NAME}: '{reply}'. React briefly as a sibling."
+        chime_sys = f"You are {other_brother}. Your brother {target} just told the {DISPLAY_NAME}: '{reply}'. Give a 1-sentence reaction. Use slang like 'bet', 'no cap', or 'W' appropriately."
         chime_res = client.chat.completions.create(
             messages=[{"role": "system", "content": chime_sys}],
             model="llama-3.1-8b-instant"
