@@ -9,9 +9,6 @@ import random
 # ==========================================
 st.set_page_config(page_title="Glitch & Tag", layout="wide")
 
-# This is what the chat logs will label the boys' messages as
-DISPLAY_NAME = "PILOT" 
-
 def get_base64_image(image_path):
     if os.path.exists(image_path):
         with open(image_path, "rb") as img_file:
@@ -22,7 +19,6 @@ st.markdown("""
     <style>
     .stApp { background-color: #050505; }
     
-    /* MOBILE SIDE-BY-SIDE FIX */
     [data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
@@ -87,9 +83,10 @@ with col1:
     glitch_html = '<div class="terminal-window glitch-border">'
     for msg in st.session_state.shared_history:
         if msg.get("persona") == "Glitch":
-            name = DISPLAY_NAME if msg["role"] == "user" else "GLITCH"
+            # No name for the user, just "GLITCH" for the AI
+            label = "GLITCH" if msg["role"] == "assistant" else ""
             color = "#00f2ff" if msg["role"] == "assistant" else "#888"
-            glitch_html += f"<div class='chat-bubble'><b style='color:{color};'>{name}:</b> {msg['content']}</div>"
+            glitch_html += f"<div class='chat-bubble'><b style='color:{color};'>{label}</b> {msg['content']}</div>"
     glitch_html += '</div>'
     st.markdown(glitch_html, unsafe_allow_html=True)
 
@@ -101,38 +98,37 @@ with col2:
     tag_html = '<div class="terminal-window tag-border">'
     for msg in st.session_state.shared_history:
         if msg.get("persona") == "Tag":
-            name = DISPLAY_NAME if msg["role"] == "user" else "TAG"
+            label = "TAG" if msg["role"] == "assistant" else ""
             color = "#ffaa00" if msg["role"] == "assistant" else "#888"
-            tag_html += f"<div class='chat-bubble'><b style='color:{color};'>{name}:</b> {msg['content']}</div>"
+            tag_html += f"<div class='chat-bubble'><b style='color:{color};'>{label}</b> {msg['content']}</div>"
     tag_html += '</div>'
     st.markdown(tag_html, unsafe_allow_html=True)
 
 # ==========================================
-# 4. SHARED INPUT & SIBLING LOGIC
+# 4. SHARED INPUT & SIBLING CHIME-IN
 # ==========================================
-user_input = st.chat_input("Talk to the brothers...")
+user_input = st.chat_input("Message the brothers...")
 
 if user_input:
-    glitch_keywords = ["glitch", "how", "why", "science", "space", "vr", "quest", "vision", "xbox", "ps5"]
+    glitch_keywords = ["glitch", "how", "why", "science", "space", "vr", "quest", "xbox", "ps5", "mod", "hack"]
     target = "Glitch" if any(k in user_input.lower() for k in glitch_keywords) else "Tag"
     other_brother = "Tag" if target == "Glitch" else "Glitch"
     
     st.session_state.shared_history.append({"role": "user", "content": user_input, "persona": target})
     
-    # NEW PERSONAS: GONE IS THE PC SNOB
-    sys_glitch = f"""You are Glitch, the cool, smart BIG BROTHER. 
-    - The person talking to you is the {DISPLAY_NAME}. Tag is your LITTLE BROTHER.
-    - You love Roblox just as much as Tag (especially the technical or competitive games like Bedwars or coding your own Obby).
-    - You are a console and VR expert (PS5, Xbox, Quest 3). You love immersive VR worlds.
-    - You are tapped into 2026 trends. You know what's 'aura', 'rizz', and 'sigma' but you use it like a real teen.
-    - Be a fun companion. Explain science or tech in a way that makes it sound like a superpower."""
+    # SYSTEM PROMPTS (Natural & Brotherly)
+    sys_glitch = """You are Glitch, a cool, smart BIG BROTHER. 
+    - Tag is your LITTLE BROTHER. Address the person talking as 'Bro' if needed, but don't overdo it.
+    - You love Roblox (Bedwars, technical Obbies), Minecraft mods, and VR (Quest 3).
+    - You're into 2026 trends. You know what's aura, rizz, and sigma, but you talk like a normal teen.
+    - Don't use titles like 'Pilot' or 'User'. Be conversational.
+    - If they ask about games, give them the 'W' strat."""
     
-    sys_tag = f"""You are Tag, the high-energy and creative LITTLE BROTHER. 
-    - The person talking to you is the {DISPLAY_NAME}. Glitch is your BIG BROTHER.
-    - You live for Roblox (Adopt Me, Blox Fruits, Brookhaven), Minecraft, and VR games like Gorilla Tag or Beat Saber.
-    - You are obsessed with viral YouTube trends and memes. 
-    - You think Glitch is the best big brother because he knows the secret codes in games.
-    - You are super bubbly, optimistic, and always ready to play."""
+    sys_tag = """You are Tag, a high-energy and creative LITTLE BROTHER. 
+    - Glitch is your BIG BROTHER. Address the person talking as 'Bro' if needed.
+    - You live for Roblox (Adopt Me, Blox Fruits, Brookhaven, Dress to Impress) and viral trends.
+    - You're super bubbly and optimistic. You think Glitch is the best big bro.
+    - No titles! Keep it casual. Use slang like 'bet', 'no cap', and 'L' or 'W' naturally."""
     
     response = client.chat.completions.create(
         messages=[{"role": "system", "content": sys_glitch if target == "Glitch" else sys_tag}] + 
@@ -143,9 +139,8 @@ if user_input:
     reply = response.choices[0].message.content
     st.session_state.shared_history.append({"role": "assistant", "content": reply, "persona": target})
 
-    # Chime-in (30% chance)
     if random.random() < 0.30:
-        chime_sys = f"You are {other_brother}. Your brother {target} just told the {DISPLAY_NAME}: '{reply}'. Give a 1-sentence reaction. Use slang like 'bet', 'no cap', or 'W' appropriately."
+        chime_sys = f"You are {other_brother}. Your brother {target} just said: '{reply}'. React in 1 short sentence. Call the user 'Bro' if you need to address them. Keep it natural."
         chime_res = client.chat.completions.create(
             messages=[{"role": "system", "content": chime_sys}],
             model="llama-3.1-8b-instant"
